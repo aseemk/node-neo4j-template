@@ -36,5 +36,11 @@ app.helpers({
 
 app.get('/', routes.site.index);
 
+app.get('/users', routes.users.list);
+app.post('/users', routes.users.create);
+app.get('/users/:id', routes.users.show);
+app.post('/users/:id', routes.users.edit);
+app.del('/users/:id', routes.users.del);
+
 app.listen(process.env.PORT || 3000);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
