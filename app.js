@@ -28,6 +28,10 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+app.helpers({
+    title: 'Node-Neo4j Template'    // default title
+});
+
 // Routes
 
 app.get('/', routes.site.index);
