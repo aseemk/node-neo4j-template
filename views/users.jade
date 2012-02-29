@@ -1,2 +1,19 @@
 h1 Users
-p TODO
+
+case users.length
+    when 0
+        p There are no users currently.
+    default
+        p Here are the current users:
+        ul.users
+            for user in users
+                li.user
+                    a(href='/users/#{user.id}') #{user.name}
+
+form(action='', method='POST')
+    fieldset
+        legend Create User
+        label
+            span Name:
+            input(type='text', name='name', required)
+        input(type='submit', value='Create')
