@@ -17,7 +17,7 @@ var User = module.exports = function User(data) {
 User.prototype.save = function (callback) {
     // TODO save to db; XXX nothing to do for now:
     process.nextTick(function () {
-        callback(null);
+        (callback || noop)(null);
     });
 };
 
@@ -26,7 +26,7 @@ User.prototype.del = function (callback) {
     var user = this;
     process.nextTick(function () {
         USERS[user.id] = null;
-        callback(null);
+        (callback || noop)(null);
     });
 };
 
@@ -38,7 +38,7 @@ User.prototype.follow = function (other, callback) {
             FOLLOWS[user.id] = {};
         }
         FOLLOWS[user.id][other.id] = true;
-        callback(null);
+        (callback || noop)(null);
     });
 };
 
@@ -60,7 +60,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
                 others.push(other);
             }
         }
-        callback(null, following, others);
+        (callback || noop)(null, following, others);
     });
 };
 
@@ -69,14 +69,14 @@ User.prototype.getFollowingAndOthers = function (callback) {
 User.get = function (id, callback) {
     // TODO fetch from db; XXX using mock data for now:
     process.nextTick(function () {
-        callback(null, USERS[id]);
+        (callback || noop)(null, USERS[id]);
     });
 };
 
 User.getAll = function (callback) {
     // TODO fetch from db; XXX using mock data for now:
     process.nextTick(function () {
-        callback(null, USERS);
+        (callback || noop)(null, USERS);
     });
 };
 
@@ -86,6 +86,25 @@ User.create = function (data, callback) {
         var user = new User(data);
         user.id = USERS.length;
         USERS.push(user);
-        callback(null, user);
+        (callback || noop)(null, user);
     });
 };
+
+// misc helpers:
+
+function noop() {}
+
+// XXX more mock data:
+User.create({name: 'Aseem Kishore'});
+User.create({name: 'Daniel Gasienica'});
+User.create({name: 'Jules Walter'});
+User.create({name: 'Gary Flake'});
+User.create({name: 'Zombie User'});
+process.nextTick(function () {
+    USERS[0].follow(USERS[1]);  // Aseem follows Daniel
+    USERS[0].follow(USERS[2]);  // Aseem follows Jules
+    USERS[0].follow(USERS[3]);  // Aseem follows Gary
+    USERS[1].follow(USERS[0]);  // Daniel follows Aseem
+    USERS[1].follow(USERS[3]);  // Daniel follows Gary
+    USERS[2].follow(USERS[0]);  // Jules follows Aseem
+});
