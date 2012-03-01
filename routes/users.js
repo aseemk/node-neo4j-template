@@ -82,7 +82,7 @@ exports.unfollow = function (req, res, next) {
         if (err) return next(err);
         User.get(req.body.user.id, function (err, other) {
             if (err) return next(err);
-            user.follow(other, function (err) {
+            user.unfollow(other, function (err) {
                 if (err) return next(err);
                 res.redirect('/users/' + user.id);
             });

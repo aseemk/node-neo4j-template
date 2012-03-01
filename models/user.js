@@ -42,6 +42,17 @@ User.prototype.follow = function (other, callback) {
     });
 };
 
+User.prototype.unfollow = function (other, callback) {
+    // TODO remove from db; XXX using mock data for now:
+    var user = this;
+    process.nextTick(function () {
+        if (FOLLOWS[user.id] && FOLLOWS[user.id][other.id]) {
+            delete FOLLOWS[user.id][other.id];
+        }
+        (callback || noop)(null);
+    });
+};
+
 // calls callback w/ (err, following, others) where following is an array of
 // users this user follows, and others is all other users minus him/herself.
 User.prototype.getFollowingAndOthers = function (callback) {
