@@ -17,4 +17,14 @@ case following.length
                     a(href='/users/#{user.id}') #{user.name}
                     // TODO show a button to unfollow this person
 
-// TODO show a form to allow following users this user isn't following
+if others.length
+    form(action='/users/#{user.id}/follow', method='POST')
+        p Add someone for #{user.name} to follow:
+        label
+            select(name='user[id]', required)
+                option(value='')
+                for user in others
+                    option(value='#{user.id}') #{user.name}
+        input(type='submit', value='Follow')
+else
+    p There's no one else left for #{user.name} to follow!
