@@ -44,7 +44,7 @@ exports.edit = function (req, res, next) {
     User.get(req.params.id, function (err, user) {
         if (err) return next(err);
         user.name = req.body['name'];
-        user.save(function (err, user) {
+        user.save(function (err) {
             if (err) return next(err);
             res.redirect('/users/' + user.id);
         });

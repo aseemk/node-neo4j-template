@@ -29,3 +29,8 @@ if others.length
         input(type='submit', value='Follow')
 else
     p There's no one else left for #{user.name} to follow!
+
+form(action='/users/#{user.id}', method='POST')
+    p Edit this user:
+    input(type='text', name='name', placeholder='#{user.name}', required)
+    input(type='submit', value='Update')
