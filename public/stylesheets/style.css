@@ -5,3 +5,7 @@ body {
 a {
   color: #00b7ff;
 }
+strong a {
+  padding: 0 0.25em;
+  background-color: #ffa;
+}
