@@ -2,7 +2,7 @@
 // User model logic.
 
 // TODO wire this up to the database; XXX for now, mock data:
-var USERS = [];
+var USERS = [];     // an array for push() convenience, but really an id map
 var FOLLOWS = {};   // 2D adjacency matrix, [user1id][user2id] = true or false
 
 // constructor:
@@ -25,7 +25,7 @@ User.prototype.del = function (callback) {
     // TODO delete from db; XXX using mock data for now:
     var user = this;
     process.nextTick(function () {
-        USERS[user.id] = null;
+        delete USERS[user.id];
         (callback || noop)(null);
     });
 };
@@ -61,8 +61,8 @@ User.prototype.getFollowingAndOthers = function (callback) {
     process.nextTick(function () {
         var following = [];
         var others = [];
-        for (var i = 0; i < USERS.length; i++) {
-            var other = USERS[i];
+        for (var id in USERS) {
+            var other = USERS[id];
             if (user.id === other.id) {
                 continue;
             } else if (FOLLOWS[user.id] && FOLLOWS[user.id][other.id]) {
@@ -87,7 +87,11 @@ User.get = function (id, callback) {
 User.getAll = function (callback) {
     // TODO fetch from db; XXX using mock data for now:
     process.nextTick(function () {
-        (callback || noop)(null, USERS);
+        // clone USERS array, removing nulls/undefineds (deleted users):
+        var users = USERS.filter(function (user) {
+            return !!user;
+        });
+        (callback || noop)(null, users);
     });
 };
 

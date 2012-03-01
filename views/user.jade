@@ -3,8 +3,6 @@ h1 #{user.name}
 p
     a(href='/users') Back to everyone
 
-// TODO support editing and deleting
-
 if following.length
     p #{user.name} is following #{following.length} users:
     // TODO should say 'user' if only one! ;)
@@ -34,3 +32,8 @@ form(action='/users/#{user.id}', method='POST')
     p Edit this user:
     input(type='text', name='name', placeholder='#{user.name}', required)
     input(type='submit', value='Update')
+
+form(action='/users/#{user.id}', method='POST', onsubmit='return confirm("Are you sure?");')
+    p And if you're feeling destructive…
+    input(type='hidden', name='_method', value='DELETE')
+    input(type='submit', value='Delete User')
