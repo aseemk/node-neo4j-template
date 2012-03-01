@@ -27,8 +27,12 @@ exports.create = function (req, res, next) {
 exports.show = function (req, res, next) {
     User.get(req.params.id, function (err, user) {
         if (err) return next(err);
+        // TODO fetch the user's following and maybe even followers?
+        // TODO fetch the users this user *isn't* following, so they can
+        // choose to follow one of those users??
         res.render('user', {
-            user: user
+            user: user,
+            following: []   // XXX mock data for now
         });
     });
 };

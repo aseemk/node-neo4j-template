@@ -1,4 +1,20 @@
 h1 #{user.name}
+
 p
     a(href='/users') Back to everyone
-p TODO support editing and deleting
+
+// TODO support editing and deleting
+
+case following.length
+    when 0
+        p #{user.name} isn't following anyone currently.
+    default
+        p #{user.name} is following #{following.length} users:
+        // TODO should say 'user' if only one! ;)
+        ul.users
+            for user in following
+                li.user
+                    a(href='/users/#{user.id}') #{user.name}
+                    // TODO show a button to unfollow this person
+
+// TODO show a form to allow following users this user isn't following
