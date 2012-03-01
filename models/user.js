@@ -3,6 +3,7 @@
 
 // TODO wire this up to the database; XXX for now, mock data:
 var USERS = [];
+var FOLLOWS = {};   // 2D adjacency matrix, [user1id][user2id] = true or false
 
 // constructor:
 
@@ -26,6 +27,40 @@ User.prototype.del = function (callback) {
     process.nextTick(function () {
         USERS[user.id] = null;
         callback(null);
+    });
+};
+
+User.prototype.follow = function (other, callback) {
+    // TODO save to db; XXX using mock data for now:
+    var user = this;
+    process.nextTick(function () {
+        if (!FOLLOWS[user.id]) {
+            FOLLOWS[user.id] = {};
+        }
+        FOLLOWS[user.id][other.id] = true;
+        callback(null);
+    });
+};
+
+// calls callback w/ (err, following, others) where following is an array of
+// users this user follows, and others is all other users minus him/herself.
+User.prototype.getFollowingAndOthers = function (callback) {
+    // TODO fetch from db; XXX using mock data for now:
+    var user = this;
+    process.nextTick(function () {
+        var following = [];
+        var others = [];
+        for (var i = 0; i < USERS.length; i++) {
+            var other = USERS[i];
+            if (user.id === other.id) {
+                continue;
+            } else if (FOLLOWS[user.id] && FOLLOWS[user.id][other.id]) {
+                following.push(other);
+            } else {
+                others.push(other);
+            }
+        }
+        callback(null, following, others);
     });
 };
 
