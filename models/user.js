@@ -1,125 +1,173 @@
 // user.js
 // User model logic.
 
-// TODO wire this up to the database; XXX for now, mock data:
-var USERS = [];     // an array for push() convenience, but really an id map
-var FOLLOWS = {};   // 2D adjacency matrix, [user1id][user2id] = true or false
+var neo4j = require('neo4j');
+var db = new neo4j.GraphDatabase(process.env.NEO4J_URL || 'http://localhost:7474');
 
-// constructor:
+// constants:
 
-var User = module.exports = function User(data) {
-    this.name = data.name;
-    this.id = null;     // only set when a user is saved to the db
+var INDEX_NAME = 'nodes';
+var INDEX_KEY = 'type';
+var INDEX_VAL = 'user';
+
+var FOLLOWS_REL = 'follows';
+
+// private constructor:
+
+var User = module.exports = function User(_node) {
+    // all we'll really store is the node; the rest of our properties will be
+    // derivable or just pass-through properties (see below).
+    this._node = _node;
 }
 
-// instance methods:
+// pass-through node properties:
+
+function proxyProperty(prop, isData) {
+    Object.defineProperty(User.prototype, prop, {
+        get: function () {
+            if (isData) {
+                return this._node.data[prop];
+            } else {
+                return this._node[prop];
+            }
+        },
+        set: function (value) {
+            if (isData) {
+                this._node.data[prop] = value;
+            } else {
+                this._node[prop] = value;
+            }
+        }
+    });
+}
+
+proxyProperty('id');
+proxyProperty('exists');
+
+proxyProperty('name', true);
+
+// private instance methods:
+
+User.prototype._getFollowingRel = function (other, callback) {
+    var query = [
+        'START user=node(USER_ID), other=node(OTHER_ID)',
+        'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
+        'RETURN rel'
+    ].join('\n')
+        .replace('USER_ID', this.id)
+        .replace('OTHER_ID', other.id)
+        .replace('FOLLOWS_REL', FOLLOWS_REL);
+
+    db.query(function (err, results) {
+        if (err) return callback(err);
+        var rel = results[0] && results[0]['rel'];
+        callback(null, rel);
+    }, query);
+};
+
+// public instance methods:
 
 User.prototype.save = function (callback) {
-    // TODO save to db; XXX nothing to do for now:
-    process.nextTick(function () {
-        (callback || noop)(null);
+    this._node.save(function (err) {
+        callback(err);
     });
 };
 
 User.prototype.del = function (callback) {
-    // TODO delete from db; XXX using mock data for now:
-    var user = this;
-    process.nextTick(function () {
-        delete USERS[user.id];
-        (callback || noop)(null);
-    });
+    this._node.del(function (err) {
+        callback(err);
+    }, true);   // true = yes, force it (delete all relationships)
 };
 
 User.prototype.follow = function (other, callback) {
-    // TODO save to db; XXX using mock data for now:
-    var user = this;
-    process.nextTick(function () {
-        if (!FOLLOWS[user.id]) {
-            FOLLOWS[user.id] = {};
-        }
-        FOLLOWS[user.id][other.id] = true;
-        (callback || noop)(null);
+    this._node.createRelationshipTo(other._node, 'follows', {}, function (err, rel) {
+        callback(err);
     });
 };
 
 User.prototype.unfollow = function (other, callback) {
-    // TODO remove from db; XXX using mock data for now:
-    var user = this;
-    process.nextTick(function () {
-        if (FOLLOWS[user.id] && FOLLOWS[user.id][other.id]) {
-            delete FOLLOWS[user.id][other.id];
-        }
-        (callback || noop)(null);
+    this._getFollowingRel(other, function (err, rel) {
+        if (err) return callback(err);
+        if (!rel) return callback(null);
+        // XXX neo4j lib doesn't alias delete to del; TODO file bug!
+        rel['delete'](function (err) {
+            callback(err);
+        });
     });
 };
 
 // calls callback w/ (err, following, others) where following is an array of
 // users this user follows, and others is all other users minus him/herself.
 User.prototype.getFollowingAndOthers = function (callback) {
-    // TODO fetch from db; XXX using mock data for now:
+    // query all users and whether we follow each one or not:
+    var query = [
+        'START user=node(USER_ID), other=node:INDEX_NAME(INDEX_KEY="INDEX_VAL")',
+        'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
+        'RETURN other, COUNT(rel)'  // COUNT(rel) is a hack for 1 or 0
+    ].join('\n')
+        .replace('USER_ID', this.id)
+        .replace('INDEX_NAME', INDEX_NAME)
+        .replace('INDEX_KEY', INDEX_KEY)
+        .replace('INDEX_VAL', INDEX_VAL)
+        .replace('FOLLOWS_REL', FOLLOWS_REL);
+
     var user = this;
-    process.nextTick(function () {
+    db.query(function (err, results) {
+        if (err) return callback(err);
+
         var following = [];
         var others = [];
-        for (var id in USERS) {
-            var other = USERS[id];
+
+        for (var i = 0; i < results.length; i++) {
+            var other = new User(results[i]['other']);
+            var follows = results[i]['count(rel)'];
+                // XXX neo4j bug: returned names are always lowercase!
+                // TODO FIXME when updating to the next version of neo4j.
+
             if (user.id === other.id) {
                 continue;
-            } else if (FOLLOWS[user.id] && FOLLOWS[user.id][other.id]) {
+            } else if (follows) {
                 following.push(other);
             } else {
                 others.push(other);
             }
         }
-        (callback || noop)(null, following, others);
-    });
+
+        callback(null, following, others);
+    }, query);
 };
 
 // static methods:
 
 User.get = function (id, callback) {
-    // TODO fetch from db; XXX using mock data for now:
-    process.nextTick(function () {
-        (callback || noop)(null, USERS[id]);
+    db.getNodeById(id, function (err, node) {
+        if (err) return callback(err);
+        callback(null, new User(node));
     });
 };
 
 User.getAll = function (callback) {
-    // TODO fetch from db; XXX using mock data for now:
-    process.nextTick(function () {
-        // clone USERS array, removing nulls/undefineds (deleted users):
-        var users = USERS.filter(function (user) {
-            return !!user;
+    db.getIndexedNodes(INDEX_NAME, INDEX_KEY, INDEX_VAL, function (err, nodes) {
+        // if (err) return callback(err);
+        // XXX FIXME the index might not exist in the beginning, so special-case
+        // this error detection. warning: this is super brittle!!
+        if (err) return callback(null, []);
+        var users = nodes.map(function (node) {
+            return new User(node);
         });
-        (callback || noop)(null, users);
+        callback(null, users);
     });
 };
 
+// creates the user and persists (saves) it to the db, incl. indexing it:
 User.create = function (data, callback) {
-    // TODO save to db; XXX using mock data for now:
-    process.nextTick(function () {
-        var user = new User(data);
-        user.id = USERS.length;
-        USERS.push(user);
-        (callback || noop)(null, user);
+    var node = db.createNode(data);
+    var user = new User(node);
+    node.save(function (err) {
+        if (err) return callback(err);
+        node.index(INDEX_NAME, INDEX_KEY, INDEX_VAL, function (err) {
+            if (err) return callback(err);
+            callback(null, user);
+        });
     });
 };
-
-// misc helpers:
-
-function noop() {}
-
-// XXX more mock data:
-User.create({name: 'Aseem Kishore'});
-User.create({name: 'Daniel Gasienica'});
-User.create({name: 'Jules Walter'});
-User.create({name: 'Gary Flake'});
-User.create({name: 'Zombie User'});
-process.nextTick(function () {
-    USERS[0].follow(USERS[1]);  // Aseem follows Daniel
-    USERS[0].follow(USERS[2]);  // Aseem follows Jules
-    USERS[0].follow(USERS[3]);  // Aseem follows Gary
-    USERS[1].follow(USERS[0]);  // Daniel follows Aseem
-    USERS[1].follow(USERS[3]);  // Daniel follows Gary
-    USERS[2].follow(USERS[0]);  // Jules follows Aseem
-});
