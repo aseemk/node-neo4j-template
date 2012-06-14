@@ -58,11 +58,11 @@ User.prototype._getFollowingRel = function (other, callback) {
         .replace('OTHER_ID', other.id)
         .replace('FOLLOWS_REL', FOLLOWS_REL);
 
-    db.query(function (err, results) {
+    db.query(query, function (err, results) {
         if (err) return callback(err);
         var rel = results[0] && results[0]['rel'];
         callback(null, rel);
-    }, query);
+    });
 };
 
 // public instance methods:
@@ -111,7 +111,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
         .replace('FOLLOWS_REL', FOLLOWS_REL);
 
     var user = this;
-    db.query(function (err, results) {
+    db.query(query, function (err, results) {
         if (err) return callback(err);
 
         var following = [];
@@ -133,7 +133,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
         }
 
         callback(null, following, others);
-    }, query);
+    });
 };
 
 // static methods:
