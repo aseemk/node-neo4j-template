@@ -50,15 +50,18 @@ proxyProperty('name', true);
 
 User.prototype._getFollowingRel = function (other, callback) {
     var query = [
-        'START user=node(USER_ID), other=node(OTHER_ID)',
+        'START user=node({userId}), other=node({otherId})',
         'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
         'RETURN rel'
     ].join('\n')
-        .replace('USER_ID', this.id)
-        .replace('OTHER_ID', other.id)
         .replace('FOLLOWS_REL', FOLLOWS_REL);
 
-    db.query(query, function (err, results) {
+    var params = {
+        userId: this.id,
+        otherId: other.id,
+    };
+
+    db.query(query, params, function (err, results) {
         if (err) return callback(err);
         var rel = results[0] && results[0]['rel'];
         callback(null, rel);
@@ -100,18 +103,21 @@ User.prototype.unfollow = function (other, callback) {
 User.prototype.getFollowingAndOthers = function (callback) {
     // query all users and whether we follow each one or not:
     var query = [
-        'START user=node(USER_ID), other=node:INDEX_NAME(INDEX_KEY="INDEX_VAL")',
+        'START user=node({userId}), other=node:INDEX_NAME(INDEX_KEY="INDEX_VAL")',
         'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
         'RETURN other, COUNT(rel)'  // COUNT(rel) is a hack for 1 or 0
     ].join('\n')
-        .replace('USER_ID', this.id)
         .replace('INDEX_NAME', INDEX_NAME)
         .replace('INDEX_KEY', INDEX_KEY)
         .replace('INDEX_VAL', INDEX_VAL)
         .replace('FOLLOWS_REL', FOLLOWS_REL);
 
+    var params = {
+        userId: this.id,
+    };
+
     var user = this;
-    db.query(query, function (err, results) {
+    db.query(query, params, function (err, results) {
         if (err) return callback(err);
 
         var following = [];

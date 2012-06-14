@@ -6,7 +6,7 @@
   , "dependencies":
     { "express": "~2.5.8"
     , "jade": "~0.26.1"
-    , "neo4j": "~0.2.7"
+    , "neo4j": "~0.2.12"
     , "stylus": "~0.27.1"
   }
   , "devDependencies":
