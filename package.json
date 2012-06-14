@@ -4,17 +4,17 @@
   , "author": "Aseem Kishore <aseem.kishore@gmail.com>"
   , "private": true
   , "dependencies":
-    { "express": "2.5.8"
-    , "jade": ">= 0.0.1"
+    { "express": "~2.5.8"
+    , "jade": "~0.26.1"
     , "neo4j": "~0.2.5"
-    , "stylus": ">= 0.0.1"
+    , "stylus": "~0.27.1"
   }
   , "devDependencies":
-    { "node-dev": "0.1.9"
+    { "node-dev": "~0.2.3"
   }
   , "engines":
-    { "node": "0.4.x"
-    , "npm": "1.0.x"
+    { "node": "0.6.x"
+    , "npm": "1.1.x"
   }
   , "scripts":
     { "start": "node-dev app.js"
