@@ -89,8 +89,7 @@ User.prototype.unfollow = function (other, callback) {
     this._getFollowingRel(other, function (err, rel) {
         if (err) return callback(err);
         if (!rel) return callback(null);
-        // XXX neo4j lib doesn't alias delete to del; TODO file bug!
-        rel['delete'](function (err) {
+        rel.del(function (err) {
             callback(err);
         });
     });
