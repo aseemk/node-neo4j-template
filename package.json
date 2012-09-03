@@ -14,7 +14,7 @@
   }
   , "engines":
     { "node": "0.6.x"
-    , "npm": "1.1.x"
+    , "npm": "1.1.x <1.1.46"
   }
   , "scripts":
     { "start": "node-dev app.js"
