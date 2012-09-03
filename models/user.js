@@ -125,9 +125,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
 
         for (var i = 0; i < results.length; i++) {
             var other = new User(results[i]['other']);
-            var follows = results[i]['count(rel)'];
-                // XXX neo4j bug: returned names are always lowercase!
-                // TODO FIXME when updating to the next version of neo4j.
+            var follows = results[i]['COUNT(rel)'];
 
             if (user.id === other.id) {
                 continue;
