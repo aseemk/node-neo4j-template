@@ -20,31 +20,24 @@ var User = module.exports = function User(_node) {
     this._node = _node;
 }
 
-// pass-through node properties:
+// public instance properties:
 
-function proxyProperty(prop, isData) {
-    Object.defineProperty(User.prototype, prop, {
-        get: function () {
-            if (isData) {
-                return this._node.data[prop];
-            } else {
-                return this._node[prop];
-            }
-        },
-        set: function (value) {
-            if (isData) {
-                this._node.data[prop] = value;
-            } else {
-                this._node[prop] = value;
-            }
-        }
-    });
-}
+Object.defineProperty(User.prototype, 'id', {
+    get: function () { return this._node.id; }
+});
 
-proxyProperty('id');
-proxyProperty('exists');
+Object.defineProperty(User.prototype, 'exists', {
+    get: function () { return this._node.exists; }
+});
 
-proxyProperty('name', true);
+Object.defineProperty(User.prototype, 'name', {
+    get: function () {
+        return this._node.data['name'];
+    },
+    set: function (name) {
+        this._node.data['name'] = name;
+    }
+});
 
 // private instance methods:
 
