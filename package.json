@@ -1,22 +1,21 @@
 { "name": "NodeNeo4jTemplate"
-  , "description": "A sample Node.js + Neo4j app."
-  , "version": "0.0.1"
-  , "author": "Aseem Kishore <aseem.kishore@gmail.com>"
-  , "private": true
-  , "dependencies":
-    { "express": "~2.5.8"
-    , "jade": "~0.26.1"
-    , "neo4j": "~0.2.12"
-    , "stylus": "~0.27.1"
+, "description": "A sample Node.js + Neo4j app."
+, "version": "0.0.1"
+, "author": "Aseem Kishore <aseem.kishore@gmail.com>"
+, "private": true
+, "dependencies":
+  { "express": "~3.2.0"
+  , "jade": "~0.26.3"
+  , "neo4j": "~0.2.19"
   }
-  , "devDependencies":
-    { "node-dev": "~0.2.3"
+, "devDependencies":
+  { "node-dev": "~2.0.1"
   }
-  , "engines":
-    { "node": "0.6.x"
-    , "npm": "1.1.x <1.1.46"
+, "engines":
+  { "node": "0.10.x"
+  , "npm": "1.2.x"
   }
-  , "scripts":
-    { "start": "node-dev app.js"
+, "scripts":
+  { "start": "node-dev app.js"
   }
 }
