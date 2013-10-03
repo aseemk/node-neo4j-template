@@ -145,8 +145,11 @@ User.get = function (id, callback) {
 User.getAll = function (callback) {
     db.getIndexedNodes(INDEX_NAME, INDEX_KEY, INDEX_VAL, function (err, nodes) {
         // if (err) return callback(err);
-        // XXX FIXME the index might not exist in the beginning, so special-case
-        // this error detection. warning: this is super brittle!!
+        // FIXME the index might not exist in the beginning, so special-case
+        // this error detection. warning: this is super brittle!
+        // the better and correct thing is to either ensure the index exists
+        // somewhere by creating it, or just use Neo4j's auto-indexing.
+        // (the Heroku Neo4j add-on doesn't support auto-indexing currently.)
         if (err) return callback(null, []);
         var users = nodes.map(function (node) {
             return new User(node);
