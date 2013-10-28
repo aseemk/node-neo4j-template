@@ -51,7 +51,7 @@ User.prototype._getFollowingRel = function (other, callback) {
 
     var params = {
         userId: this.id,
-        otherId: other.id,
+        otherId: other.id
     };
 
     db.query(query, params, function (err, results) {
@@ -106,7 +106,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
         .replace('FOLLOWS_REL', FOLLOWS_REL);
 
     var params = {
-        userId: this.id,
+        userId: this.id
     };
 
     var user = this;
