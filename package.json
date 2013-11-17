@@ -6,7 +6,7 @@
 , "dependencies":
   { "express": "~3.2.0"
   , "jade": "~0.26.3"
-  , "neo4j": "~1.0.0"
+  , "neo4j": "~1.1"
   }
 , "devDependencies":
   { "node-dev": "~2.0.1"
