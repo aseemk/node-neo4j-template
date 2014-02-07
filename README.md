@@ -1,13 +1,13 @@
 # Node-Neo4j Template
 
 This is a template app showing the use of [Neo4j][] from Node.js. It uses the
-[node-neo4j][] library, available on npm as `neo4j`.
+**[node-neo4j][]** library, available on npm as `neo4j`.
 
-The app is a simple social network manager: it lets you add and remove users
-and "follows" relationships between them.
+The app is a simple social network manager: it lets you add and remove users,
+and follow/unfollow them.
 
 This app supports deploying to Heroku, and a demo is in fact running live at
-[http://node-neo4j-template.herokuapp.com/](http://node-neo4j-template.herokuapp.com/).
+**[http://node-neo4j-template.herokuapp.com/](http://node-neo4j-template.herokuapp.com/)**.
 
 So try it out, browse the code, and fork this project to get a head start on
 creating your own Node-Neo4j app. Enjoy!
@@ -15,30 +15,32 @@ creating your own Node-Neo4j app. Enjoy!
 
 ## Installation
 
-```bash
-# Install the required dependencies
-npm install
-
-# Install a local Neo4j instance
-NEO4J_VERSION=neo4j-community-1.9.4
-curl http://dist.neo4j.org/$NEO4J_VERSION-unix.tar.gz --O $NEO4J_VERSION-unix.tar.gz
-tar -zxvf $NEO4J_VERSION-unix.tar.gz
-rm $NEO4J_VERSION-unix.tar.gz
-ln -s $NEO4J_VERSION/bin/neo4j neo4j
 ```
+git clone git@github.com:aseemk/node-neo4j-template.git
+cd node-neo4j-template
+npm install
+```
+
+You'll also need a local Neo4j 2.0 instance.
+Install it via **[neo4j.org/download](http://neo4j.org/download)**.
+Alternately, if you're on a Mac, you can do `brew install neo4j`.
 
 
 ## Usage
 
-```bash
-# Start the local Neo4j instance
-./neo4j start
+Start your local Neo4j instance (e.g. `neo4j start`), and assuming it's
+running on the default of port 7474:
 
-# Run the app!
+```
 npm start
 ```
 
-The app will now be accessible at [http://localhost:3000/](http://localhost:3000/).
+The app will now be accessible at
+[http://localhost:3000/](http://localhost:3000/).
+
+(You can optionally point to Neo4j elsewhere via a `NEO4J_URL` environment
+variable, or change the app's port via a `PORT` one.
+This is how the app works on Heroku.)
 
 The UI is admittedly quite crappy, but hopefully it shows the functionality.
 (Anyway, this project is really about the code! =P)
