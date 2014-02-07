@@ -44,7 +44,7 @@ Object.defineProperty(User.prototype, 'name', {
 User.prototype._getFollowingRel = function (other, callback) {
     var query = [
         'START user=node({userId}), other=node({otherId})',
-        'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
+        'OPTIONAL MATCH (user) -[rel:FOLLOWS_REL]-> (other)',
         'RETURN rel'
     ].join('\n')
         .replace('FOLLOWS_REL', FOLLOWS_REL);
@@ -97,7 +97,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
     // query all users and whether we follow each one or not:
     var query = [
         'START user=node({userId}), other=node:INDEX_NAME(INDEX_KEY="INDEX_VAL")',
-        'MATCH (user) -[rel?:FOLLOWS_REL]-> (other)',
+        'OPTIONAL MATCH (user) -[rel:FOLLOWS_REL]-> (other)',
         'RETURN other, COUNT(rel)'  // COUNT(rel) is a hack for 1 or 0
     ].join('\n')
         .replace('INDEX_NAME', INDEX_NAME)
