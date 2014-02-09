@@ -7,7 +7,7 @@ The app is a simple social network manager: it lets you add and remove users,
 and follow/unfollow them.
 
 This app supports deploying to Heroku, and a demo is in fact running live at
-**[http://node-neo4j-template.herokuapp.com/](http://node-neo4j-template.herokuapp.com/)**.
+**<https://node-neo4j-template.herokuapp.com/>**.
 
 So try it out, browse the code, and fork this project to get a head start on
 creating your own Node-Neo4j app. Enjoy!
@@ -28,8 +28,7 @@ Alternately, if you're on a Mac, you can do `brew install neo4j`.
 
 ## Usage
 
-Start your local Neo4j instance (e.g. `neo4j start`), and assuming it's
-running on the default of port 7474:
+Start your local Neo4j instance (e.g. `neo4j start`), then:
 
 ```
 npm start
@@ -38,12 +37,38 @@ npm start
 The app will now be accessible at
 [http://localhost:3000/](http://localhost:3000/).
 
-(You can optionally point to Neo4j elsewhere via a `NEO4J_URL` environment
-variable, or change the app's port via a `PORT` one.
-This is how the app works on Heroku.)
-
 The UI is admittedly quite crappy, but hopefully it shows the functionality.
 (Anyway, this project is really about the code! =P)
+
+
+## Deploying
+
+An instance of this app runs on Heroku, using the free test version of the
+[GrapheneDB add-on](https://addons.heroku.com/graphenedb):
+
+<https://node-neo4j-template.herokuapp.com/>
+
+If you want to run your own app on Heroku similarly, there isn't much you need to do:
+
+```
+heroku create [your-app-name]
+heroku addons:add graphenedb
+git push heroku master
+```
+
+There's already a [Procfile](./Procfile) here for Heroku, and the code already
+checks for the necessary `PORT` and `GRAPHENEDB_URL` environment variables,
+so your deploy should go off without a hitch!
+
+If you're deploying in another way, one thing to note is that `npm start` is
+currently geared towards development: it runs
+[node-dev](https://github.com/fgnass/node-dev) instead of node.
+Edit `scripts.start` in [package.json](./package.json) to change that.
+
+The code also checks for a `NEO4J_URL` environment variable to support
+pointing to any Neo4j database. The value of this variable should be set to
+the database root URL, and it can contain HTTP Basic Auth info.
+E.g. `https://user:pass@1.2.3.4:5678`.
 
 
 ## Miscellany
