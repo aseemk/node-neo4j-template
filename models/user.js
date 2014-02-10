@@ -148,13 +148,23 @@ User.get = function (id, callback) {
 
 User.getAll = function (callback) {
     db.getIndexedNodes(INDEX_NAME, INDEX_KEY, INDEX_VAL, function (err, nodes) {
-        // if (err) return callback(err);
-        // FIXME the index might not exist in the beginning, so special-case
-        // this error detection. warning: this is super brittle!
-        // the better and correct thing is to either ensure the index exists
-        // somewhere by creating it, or just use Neo4j's auto-indexing.
-        // (the Heroku Neo4j add-on doesn't support auto-indexing currently.)
-        if (err) return callback(null, []);
+        if (err) {
+            // HACK our node index doesn't exist by default on fresh dbs, so
+            // check to see if that's the reason for this error.
+            // it'd be better to have an explicit way to create this index
+            // before running the app, e.g. an "initialize db" script.
+            //
+            // HACK it's also brittle to be relying on the error's message
+            // property. it'd be better if node-neo4j added more semantic
+            // properties to errors, e.g. neo4jException or statusCode.
+            // https://github.com/thingdom/node-neo4j/issues/73
+            //
+            if (err.message.match(/Neo4j NotFoundException/i)) {
+                return callback(null, []);
+            } else {
+                return callback(err);
+            }
+        }
         var users = nodes.map(function (node) {
             return new User(node);
         });
