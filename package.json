@@ -9,7 +9,9 @@
   , "neo4j": "~1.1"
   }
 , "devDependencies":
-  { "node-dev": "~2.0.1"
+  { "chai": "~1.8"
+  , "mocha": "~1.18"
+  , "node-dev": "~2.0.1"
   }
 , "engines":
   { "node": "0.10.x"
@@ -17,5 +19,6 @@
   }
 , "scripts":
   { "start": "node-dev app.js"
+  , "test": "mocha test/*/*.js"
   }
 }
