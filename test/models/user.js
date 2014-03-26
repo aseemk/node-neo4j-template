@@ -80,21 +80,96 @@ describe('User models:', function () {
         });
     });
 
-    it('Create user A');
+    it('Create user A', function (next) {
+        var name = 'Test User A';
+        User.create({name: name}, function (err, user) {
+            if (err) return next(err);
 
-    it('Fetch user A');
+            expectUser(user);
+            expect(user.id).to.be.a('number');
+            expect(user.name).to.be.equal(name);
 
-    it('List users again');
+            USER_A = user;
+            return next();
+        });
+    });
 
-    it('Update user A');
+    it('Fetch user A', function (next) {
+        User.get(USER_A.id, function (err, user) {
+            if (err) return next(err);
+            expectUser(user, USER_A);
+            return next();
+        });
+    });
 
-    it('Fetch user A again');
+    it('List users again', function (next) {
+        User.getAll(function (err, users) {
+            if (err) return next(err);
 
-    it('Delete user A');
+            // the order isn't part of the contract, so we just test that the
+            // new array is one longer than the initial, and contains user A.
+            expect(users).to.be.an('array');
+            expect(users).to.have.length(INITIAL_USERS.length + 1);
 
-    it('Attempt to fetch user A again');
+            var found = false;
+            users.forEach(function (user) {
+                if (user.id === USER_A.id) {
+                    expect(found, 'User A already found').to.equal(false);
+                    expectUser(user, USER_A);
+                    found = true;
+                }
+            });
+            expect(found, 'User A not found').to.equal(true);
 
-    it('List users again');
+            return next();
+        });
+    });
+
+    it('Update user A', function (next) {
+        USER_A.name += ' (edited)';
+        USER_A.save(function (err) {
+            return next(err);
+        });
+    });
+
+    it('Fetch user A again', function (next) {
+        User.get(USER_A.id, function (err, user) {
+            if (err) return next(err);
+            expectUser(user, USER_A);
+            return next();
+        });
+    });
+
+    it('Delete user A', function (next) {
+        USER_A.del(function (err) {
+            return next(err);
+        });
+    });
+
+    it('Attempt to fetch user A again', function (next) {
+        User.get(USER_A.id, function (err, user) {
+            expect(user).to.not.exist;  // i.e. null or undefined
+            expect(err).to.be.an('object');
+            expect(err).to.be.an.instanceOf(Error);
+            return next();
+        });
+    });
+
+    it('List users again', function (next) {
+        User.getAll(function (err, users) {
+            if (err) return next(err);
+
+            // like before, we just test that this array is now back to the
+            // initial length, and *doesn't* contain user A.
+            expect(users).to.be.an('array');
+            expect(users).to.have.length(INITIAL_USERS.length);
+            users.forEach(function (user) {
+                expect(user.id).to.not.equal(USER_A.id);
+            });
+
+            return next();
+        });
+    });
 
     // Multi-user following:
 
