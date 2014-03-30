@@ -97,6 +97,42 @@ function expectUsersToNotContain(users, expUser) {
     });
 }
 
+/**
+ * Fetches the given user's "following and others", and asserts that it
+ * reflects the given list of expected following and expected others.
+ * The expected following is expected to be a complete list, while the
+ * expected others may be a subset of all users.
+ * Calls the given callback (err, following, others) when complete.
+ */
+function expectUserToFollow(user, expFollowing, expOthers, callback) {
+    user.getFollowingAndOthers(function (err, actFollowing, actOthers) {
+        if (err) return callback(err);
+
+        expect(actFollowing).to.be.an('array');
+        expect(actFollowing).to.have.length(expFollowing.length);
+        expFollowing.forEach(function (expFollowingUser) {
+            expectUsersToContain(actFollowing, expFollowingUser);
+        });
+        expOthers.forEach(function (expOtherUser) {
+            expectUsersToNotContain(actFollowing, expOtherUser);
+        });
+
+        expect(actOthers).to.be.an('array');
+        expOthers.forEach(function (expOtherUser) {
+            expectUsersToContain(actOthers, expOtherUser);
+        });
+        expFollowing.forEach(function (expFollowingUser) {
+            expectUsersToNotContain(actOthers, expFollowingUser);
+        });
+
+        // and neither list should contain the user itself:
+        expectUsersToNotContain(actFollowing, user);
+        expectUsersToNotContain(actOthers, user);
+
+        return callback(null, actFollowing, actOthers);
+    });
+}
+
 
 // Tests:
 
@@ -231,33 +267,22 @@ describe('User models:', function () {
     });
 
     it('Fetch user B’s “following and others”', function (next) {
-        USER_B.getFollowingAndOthers(function (err, following, others) {
+        expectUserToFollow(USER_B, [], [USER_C], function (err, following, others) {
             if (err) return next(err);
 
-            // following should be empty, and others should be all users
-            // minus user B. that's equal to initial users plus user C.
-            expect(following).to.be.an('array');
-            expect(following).to.be.empty;
-            expect(others).to.be.an('array');
+            // our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
-            expectUsersToContain(others, USER_C);
-            expectUsersToNotContain(others, USER_B);
 
             return next();
         });
     });
 
     it('Fetch user C’s “following and others”', function (next) {
-        USER_C.getFollowingAndOthers(function (err, following, others) {
+        expectUserToFollow(USER_C, [], [USER_B], function (err, following, others) {
             if (err) return next(err);
 
-            // similar to the previous, but switching user B and C.
-            expect(following).to.be.an('array');
-            expect(following).to.be.empty;
-            expect(others).to.be.an('array');
+            // our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
-            expectUsersToContain(others, USER_B);
-            expectUsersToNotContain(others, USER_C);
 
             return next();
         });
@@ -276,37 +301,11 @@ describe('User models:', function () {
     });
 
     it('Fetch user B’s “following and others”', function (next) {
-        USER_B.getFollowingAndOthers(function (err, following, others) {
-            if (err) return next(err);
-
-            // following should now have (only) user C, and others should have
-            // everyone else.
-            expect(following).to.be.an('array');
-            expect(following).to.have.length(1);
-            expectUsersToContain(following, USER_C);
-            expect(others).to.be.an('array');
-            expect(others).to.have.length(INITIAL_USERS.length);
-            expectUsersToNotContain(others, USER_B);
-            expectUsersToNotContain(others, USER_C);
-
-            return next();
-        });
+        expectUserToFollow(USER_B, [USER_C], [], next);
     });
 
     it('Fetch user C’s “following and others”', function (next) {
-        USER_C.getFollowingAndOthers(function (err, following, others) {
-            if (err) return next(err);
-
-            // C's results should be unchanged from before:
-            expect(following).to.be.an('array');
-            expect(following).to.be.empty;
-            expect(others).to.be.an('array');
-            expect(others).to.have.length(INITIAL_USERS.length + 1);
-            expectUsersToContain(others, USER_B);
-            expectUsersToNotContain(others, USER_C);
-
-            return next();
-        });
+        expectUserToFollow(USER_C, [], [USER_B], next);
     });
 
     it('Have user B unfollow user C', function (next) {
@@ -323,53 +322,91 @@ describe('User models:', function () {
     });
 
     it('Fetch user B’s “following and others”', function (next) {
-        USER_B.getFollowingAndOthers(function (err, following, others) {
-            if (err) return next(err);
-
-            // these should be back to the way they originally were:
-            expect(following).to.be.an('array');
-            expect(following).to.be.empty;
-            expect(others).to.be.an('array');
-            expect(others).to.have.length(INITIAL_USERS.length + 1);
-            expectUsersToContain(others, USER_C);
-            expectUsersToNotContain(others, USER_B);
-
-            return next();
-        });
+        expectUserToFollow(USER_B, [], [USER_C], next);
     });
 
     it('Fetch user C’s “following and others”', function (next) {
-        USER_C.getFollowingAndOthers(function (err, following, others) {
-            if (err) return next(err);
-
-            // and these should still be the same:
-            expect(following).to.be.an('array');
-            expect(following).to.be.empty;
-            expect(others).to.be.an('array');
-            expect(others).to.have.length(INITIAL_USERS.length + 1);
-            expectUsersToContain(others, USER_B);
-            expectUsersToNotContain(others, USER_C);
-
-            return next();
-        });
+        expectUserToFollow(USER_C, [], [USER_B], next);
     });
 
     // Multi-user-following deletions:
 
-    it('Create user D');
+    it('Create user D', function (next) {
+        var name = 'Test User D';
+        User.create({name: name}, function (err, user) {
+            if (err) return next(err);
 
-    it('Have user B follow user C follow user D');
+            expectUser(user);
+            expect(user.name).to.be.equal(name);
 
-    it('Fetch all user’s “following and others”');
+            USER_D = user;
+            return next();
+        });
+    });
 
-    it('Delete user B');
+    it('Have user B follow user C follow user D', function (next) {
+        var remaining = 2;
 
-    it('Fetch user C’s and D’s “following and others”');
+        function callback(err) {
+            if (err) return next(err);
+            if (--remaining === 0) {
+                next();
+            }
+        }
 
-    it('Delete user D');
+        USER_B.follow(USER_C, callback);
+        USER_C.follow(USER_D, callback);
+    });
 
-    it('Fetch user C’s “following and others”');
+    it('Fetch all user’s “following and others”', function (next) {
+        var remaining = 3;
 
-    it('Delete user C');
+        function callback(err) {
+            if (err) return next(err);
+            if (--remaining === 0) {
+                next();
+            }
+        }
+
+        expectUserToFollow(USER_B, [USER_C], [USER_D], callback);
+        expectUserToFollow(USER_C, [USER_D], [USER_B], callback);
+        expectUserToFollow(USER_D, [], [USER_B, USER_C], callback);
+    });
+
+    it('Delete user B', function (next) {
+        USER_B.del(function (err) {
+            return next(err);
+        });
+    });
+
+    it('Fetch user C’s and D’s “following and others”', function (next) {
+        var remaining = 2;
+
+        function callback(err) {
+            if (err) return next(err);
+            if (--remaining === 0) {
+                next();
+            }
+        }
+
+        expectUserToFollow(USER_C, [USER_D], [], callback);
+        expectUserToFollow(USER_D, [], [USER_C], callback);
+    });
+
+    it('Delete user D', function (next) {
+        USER_D.del(function (err) {
+            return next(err);
+        });
+    });
+
+    it('Fetch user C’s “following and others”', function (next) {
+        expectUserToFollow(USER_C, [], [], next);
+    });
+
+    it('Delete user C', function (next) {
+        USER_C.del(function (err) {
+            return next(err);
+        });
+    });
 
 });
