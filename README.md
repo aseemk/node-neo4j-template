@@ -37,6 +37,12 @@ npm start
 The app will now be accessible at
 [http://localhost:3000/](http://localhost:3000/).
 
+To run the tests:
+
+```
+npm test
+```
+
 
 ## Deploying
 
@@ -65,7 +71,6 @@ contain HTTP Basic Auth info. E.g. `https://user:pass@1.2.3.4:5678`.
 One thing to note is that `npm start` is currently geared towards development:
 it runs [node-dev](https://github.com/fgnass/node-dev) instead of node.
 Edit `scripts.start` in [package.json](./package.json) if you need to change that.
-
 
 
 ## Miscellany
