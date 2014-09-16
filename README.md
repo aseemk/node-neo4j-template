@@ -51,7 +51,11 @@ This app is running on Heroku, using the free test version of the
 
 <https://node-neo4j-template.herokuapp.com/>
 
-If you want to run your own instance similarly, it's easy:
+If you want to run your own instance similarly, it's just one click of a button away:
+
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
+
+If you prefer to deploy this sample app manually, these are the steps:
 
 ```
 heroku create [your-app-name]

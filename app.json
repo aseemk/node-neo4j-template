@@ -1,0 +1,7 @@
+{
+  "name": "node-neo4j-template",
+  "description": "A template app for using Neo4j from Node.js, using the node-neo4j driver. Deployment using GrapheneDB.",
+  "website": "https://github.com/thingdom/node-neo4j",
+  "keywords": ["node", "neo4j"],
+  "addons": ["graphenedb:chalk"]
+}
