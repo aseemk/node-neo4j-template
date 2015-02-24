@@ -18,30 +18,48 @@ var User = module.exports = function User(_node) {
 
 // public instance properties:
 
+// TODO using native Neo4j IDs is now discouraged; switch to an indexed+unique
+// property instead, e.g. `email` or `username` or etc.
 Object.defineProperty(User.prototype, 'id', {
-    get: function () { return this._node.id; }
+    get: function () { return this._node._id; }
 });
 
 Object.defineProperty(User.prototype, 'name', {
     get: function () {
-        return this._node.data['name'];
+        return this._node.properties['name'];
     },
     set: function (name) {
-        this._node.data['name'] = name;
+        this._node.properties['name'] = name;
     }
 });
 
 // public instance methods:
 
+// TODO: node-neo4j v2 is no longer has a `save` method, because updates should
+// be atomic and precise via Cypher, so consider a `patch` method instead.
 User.prototype.save = function (callback) {
-    this._node.save(function (err) {
+    var query = [
+        'MATCH (user:User)',
+        'WHERE ID(user) = {id}',
+        'SET user = {props}',
+    ].join('\n')
+
+    var params = {
+        id: this.id,
+        props: this._node.properties,
+    };
+
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err) {
         callback(err);
     });
 };
 
 User.prototype.del = function (callback) {
     // use a Cypher query to delete both this user and his/her following
-    // relationships in one transaction and one network request:
+    // relationships in one query and one network request:
     // (note that this'll still fail if there are any relationships attached
     // of any other types, which is good because we don't expect any.)
     var query = [
@@ -57,13 +75,30 @@ User.prototype.del = function (callback) {
         userId: this.id
     };
 
-    db.query(query, params, function (err) {
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err) {
         callback(err);
     });
 };
 
 User.prototype.follow = function (other, callback) {
-    this._node.createRelationshipTo(other._node, 'follows', {}, function (err, rel) {
+    var query = [
+        'MATCH (user:User) ,(other:User)',
+        'WHERE ID(user) = {userId} AND ID(other) = {otherId}',
+        'MERGE (user) -[rel:follows]-> (other)',
+    ].join('\n')
+
+    var params = {
+        userId: this.id,
+        otherId: other.id,
+    };
+
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err) {
         callback(err);
     });
 };
@@ -80,7 +115,10 @@ User.prototype.unfollow = function (other, callback) {
         otherId: other.id,
     };
 
-    db.query(query, params, function (err) {
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err) {
         callback(err);
     });
 };
@@ -101,7 +139,10 @@ User.prototype.getFollowingAndOthers = function (callback) {
     };
 
     var user = this;
-    db.query(query, params, function (err, results) {
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err, results) {
         if (err) return callback(err);
 
         var following = [];
@@ -127,9 +168,27 @@ User.prototype.getFollowingAndOthers = function (callback) {
 // static methods:
 
 User.get = function (id, callback) {
-    db.getNodeById(id, function (err, node) {
+    var query = [
+        'MATCH (user:User)',
+        'WHERE ID(user) = {id}',
+        'RETURN user',
+    ].join('\n')
+
+    var params = {
+        id: parseInt(id, 10),
+    };
+
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err, results) {
         if (err) return callback(err);
-        callback(null, new User(node));
+        if (!results.length) {
+            err = new Error('No such user with ID: ' + id);
+            return callback(err);
+        }
+        var user = new User(results[0]['user']);
+        callback(null, user);
     });
 };
 
@@ -139,7 +198,9 @@ User.getAll = function (callback) {
         'RETURN user',
     ].join('\n');
 
-    db.query(query, null, function (err, results) {
+    db.cypher({
+        query: query,
+    }, function (err, results) {
         if (err) return callback(err);
         var users = results.map(function (result) {
             return new User(result['user']);
@@ -149,25 +210,27 @@ User.getAll = function (callback) {
 };
 
 // creates the user and persists (saves) it to the db, incl. indexing it:
-User.create = function (data, callback) {
-    // construct a new instance of our class with the data, so it can
-    // validate and extend it, etc., if we choose to do that in the future:
-    var node = db.createNode(data);
-    var user = new User(node);
+User.create = function (props, callback) {
+    // select and translate the given public-facing properties into the
+    // database-internal properties we persist.
+    // today, the only property we have is `name`, and it's the same.
+    var props = {
+        name: props.name,
+    };
 
-    // but we do the actual persisting with a Cypher query, so we can also
-    // apply a label at the same time. (the save() method doesn't support
-    // that, since it uses Neo4j's REST API, which doesn't support that.)
     var query = [
-        'CREATE (user:User {data})',
+        'CREATE (user:User {props})',
         'RETURN user',
     ].join('\n');
 
     var params = {
-        data: data
+        props: props
     };
 
-    db.query(query, params, function (err, results) {
+    db.cypher({
+        query: query,
+        params: params,
+    }, function (err, results) {
         if (err) return callback(err);
         var user = new User(results[0]['user']);
         callback(null, user);
