@@ -25,35 +25,58 @@ Object.defineProperty(User.prototype, 'id', {
 });
 
 Object.defineProperty(User.prototype, 'name', {
-    get: function () {
-        return this._node.properties['name'];
-    },
-    set: function (name) {
-        this._node.properties['name'] = name;
-    }
+    get: function () { return this._node.properties['name']; }
 });
+
+// private helpers:
+
+// takes the given caller-provided properties (which corresponding to our public
+// instance properties), selects only whitelisted ones for editing, validates
+// them, and translates them to the corresponding internal db properties.
+function translate(props) {
+    // today, the only property we have is `name`; it's the same; and it needs
+    // no validation. (might want to validate things like length, Unicode, etc.)
+    return {
+        name: props.name,
+    };
+}
 
 // public instance methods:
 
-// TODO: node-neo4j v2 is no longer has a `save` method, because updates should
-// be atomic and precise via Cypher, so consider a `patch` method instead.
-User.prototype.save = function (callback) {
+// atomically updates this user, both locally and remotely in the db, with the
+// given property updates.
+User.prototype.patch = function (props, callback) {
+    var safeProps = translate(props);
+
     var query = [
         'MATCH (user:User)',
         'WHERE ID(user) = {id}',
-        'SET user = {props}',
-    ].join('\n')
+        'SET user += {props}',
+        'RETURN user',
+    ].join('\n');
 
     var params = {
         id: this.id,
-        props: this._node.properties,
+        props: safeProps,
     };
+
+    var self = this;
 
     db.cypher({
         query: query,
         params: params,
-    }, function (err) {
-        callback(err);
+    }, function (err, results) {
+        if (err) return callback(err);
+
+        if (!results.length) {
+            err = new Error('User has been deleted! ID: ' + self.id);
+            return callback(err);
+        }
+
+        // Update our node with this updated+latest data from the server:
+        self._node = results[0]['user'];
+
+        callback(null);
     });
 };
 
@@ -211,20 +234,13 @@ User.getAll = function (callback) {
 
 // creates the user and persists (saves) it to the db, incl. indexing it:
 User.create = function (props, callback) {
-    // select and translate the given public-facing properties into the
-    // database-internal properties we persist.
-    // today, the only property we have is `name`, and it's the same.
-    var props = {
-        name: props.name,
-    };
-
     var query = [
         'CREATE (user:User {props})',
         'RETURN user',
     ].join('\n');
 
     var params = {
-        props: props
+        props: translate(props)
     };
 
     db.cypher({

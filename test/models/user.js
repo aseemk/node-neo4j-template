@@ -191,8 +191,9 @@ describe('User models:', function () {
     });
 
     it('Update user A', function (next) {
-        USER_A.name += ' (edited)';
-        USER_A.save(function (err) {
+        USER_A.patch({
+            name: USER_A.name + ' (edited)',
+        }, function (err) {
             return next(err);
         });
     });
