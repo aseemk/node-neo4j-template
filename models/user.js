@@ -89,10 +89,8 @@ User.prototype.del = function (callback) {
     var query = [
         'MATCH (user:User)',
         'WHERE ID(user) = {userId}',
-        'DELETE user',
-        'WITH user',
-        'MATCH (user) -[rel:follows]- (other)',
-        'DELETE rel',
+        'OPTIONAL MATCH (user) -[rel:follows]- (other)',
+        'DELETE user, rel',
     ].join('\n')
 
     var params = {
