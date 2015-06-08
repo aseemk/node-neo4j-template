@@ -2,23 +2,24 @@
 // User model logic.
 
 var neo4j = require('neo4j');
+
 var db = new neo4j.GraphDatabase(
     process.env['NEO4J_URL'] ||
     process.env['GRAPHENEDB_URL'] ||
     'http://localhost:7474'
 );
 
-// private constructor:
+// Private constructor:
 
 var User = module.exports = function User(_node) {
-    // all we'll really store is the node; the rest of our properties will be
+    // All we'll really store is the node; the rest of our properties will be
     // derivable or just pass-through properties (see below).
     this._node = _node;
 }
 
-// public instance properties:
+// Public instance properties:
 
-// TODO using native Neo4j IDs is now discouraged; switch to an indexed+unique
+// TODO: Using native Neo4j IDs is now discouraged; switch to an indexed+unique
 // property instead, e.g. `email` or `username` or etc.
 Object.defineProperty(User.prototype, 'id', {
     get: function () { return this._node._id; }
@@ -28,22 +29,22 @@ Object.defineProperty(User.prototype, 'name', {
     get: function () { return this._node.properties['name']; }
 });
 
-// private helpers:
+// Private helpers:
 
-// takes the given caller-provided properties (which corresponding to our public
+// Takes the given caller-provided properties (which corresponding to our public
 // instance properties), selects only whitelisted ones for editing, validates
 // them, and translates them to the corresponding internal db properties.
 function translate(props) {
-    // today, the only property we have is `name`; it's the same; and it needs
-    // no validation. (might want to validate things like length, Unicode, etc.)
+    // Today, the only property we have is `name`; it's the same; and it needs
+    // no validation. (Might want to validate things like length, Unicode, etc.)
     return {
         name: props.name,
     };
 }
 
-// public instance methods:
+// Public instance methods:
 
-// atomically updates this user, both locally and remotely in the db, with the
+// Atomically updates this user, both locally and remotely in the db, with the
 // given property updates.
 User.prototype.patch = function (props, callback) {
     var safeProps = translate(props);
@@ -81,9 +82,9 @@ User.prototype.patch = function (props, callback) {
 };
 
 User.prototype.del = function (callback) {
-    // use a Cypher query to delete both this user and his/her following
+    // Use a Cypher query to delete both this user and his/her following
     // relationships in one query and one network request:
-    // (note that this'll still fail if there are any relationships attached
+    // (Note that this'll still fail if there are any relationships attached
     // of any other types, which is good because we don't expect any.)
     var query = [
         'MATCH (user:User)',
@@ -146,10 +147,10 @@ User.prototype.unfollow = function (other, callback) {
     });
 };
 
-// calls callback w/ (err, following, others) where following is an array of
+// Calls callback w/ (err, following, others), where following is an array of
 // users this user follows, and others is all other users minus him/herself.
 User.prototype.getFollowingAndOthers = function (callback) {
-    // query all users and whether we follow each one or not:
+    // Query all users and whether we follow each one or not:
     var query = [
         'MATCH (user:User), (other:User)',
         'OPTIONAL MATCH (user) -[rel:follows]-> (other)',
@@ -188,7 +189,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
     });
 };
 
-// static methods:
+// Static methods:
 
 User.get = function (id, callback) {
     var query = [
@@ -232,7 +233,7 @@ User.getAll = function (callback) {
     });
 };
 
-// creates the user and persists (saves) it to the db, incl. indexing it:
+// Creates the user and persists (saves) it to the db, incl. indexing it:
 User.create = function (props, callback) {
     var query = [
         'CREATE (user:User {props})',

@@ -33,7 +33,7 @@ exports.create = function (req, res, next) {
 exports.show = function (req, res, next) {
     User.get(req.params.id, function (err, user) {
         if (err) return next(err);
-        // TODO also fetch and show followers? (not just follow*ing*)
+        // TODO: Also fetch and show followers? (Not just follow*ing*.)
         user.getFollowingAndOthers(function (err, following, others) {
             if (err) return next(err);
             res.render('user', {

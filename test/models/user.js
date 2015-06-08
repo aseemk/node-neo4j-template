@@ -180,7 +180,7 @@ describe('User models:', function () {
         User.getAll(function (err, users) {
             if (err) return next(err);
 
-            // the order isn't part of the contract, so we just test that the
+            // The order isn't part of the contract, so we just test that the
             // new array is one longer than the initial, and contains user A.
             expect(users).to.be.an('array');
             expect(users).to.have.length(INITIAL_USERS.length + 1);
@@ -225,7 +225,7 @@ describe('User models:', function () {
         User.getAll(function (err, users) {
             if (err) return next(err);
 
-            // like before, we just test that this array is now back to the
+            // Like before, we just test that this array is now back to the
             // initial length, and *doesn't* contain user A.
             expect(users).to.be.an('array');
             expect(users).to.have.length(INITIAL_USERS.length);
@@ -254,7 +254,7 @@ describe('User models:', function () {
                     USER_C = user;
                     break;
                 default:
-                    // trigger an assertion error:
+                    // Trigger an assertion error:
                     expect(user.name).to.equal(nameB);
             }
 
@@ -271,7 +271,7 @@ describe('User models:', function () {
         expectUserToFollow(USER_B, [], [USER_C], function (err, following, others) {
             if (err) return next(err);
 
-            // our helper tests most things; we just test the length of others:
+            // Our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
 
             return next();
@@ -282,7 +282,7 @@ describe('User models:', function () {
         expectUserToFollow(USER_C, [], [USER_B], function (err, following, others) {
             if (err) return next(err);
 
-            // our helper tests most things; we just test the length of others:
+            // Our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
 
             return next();
@@ -315,7 +315,7 @@ describe('User models:', function () {
         });
     });
 
-    // NOTE: skipping this actually causes the next two tests to fail!
+    // FIXME: Skipping this actually causes the next two tests to fail!
     it('Have user B unfollow user C again', function (next) {
         USER_B.unfollow(USER_C, function (err) {
             return next(err);
