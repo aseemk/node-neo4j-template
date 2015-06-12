@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/aseemk/node-neo4j-template.svg?branch=master)](https://travis-ci.org/aseemk/node-neo4j-template)
+
 # Node-Neo4j Template
 
 This is a template [Node.js][] + [Neo4j][] app, using the
