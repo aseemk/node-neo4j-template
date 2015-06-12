@@ -5,14 +5,14 @@
   "author": "Aseem Kishore <aseem.kishore@gmail.com>",
   "private": true,
   "dependencies": {
-    "express": "~3.2.0",
-    "jade": "~0.26.3",
-    "neo4j": "~1.1"
+    "express": "^3.2.0",
+    "jade": "^0.26.3",
+    "neo4j": "^1.1"
   },
   "devDependencies": {
-    "chai": "~1.8",
-    "mocha": "~1.18",
-    "node-dev": "~2.0.1"
+    "chai": "^1.8",
+    "mocha": "^1.18",
+    "node-dev": "^2.0.1"
   },
   "engines": {
     "node": "0.10.x"
