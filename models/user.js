@@ -2,6 +2,7 @@
 // User model logic.
 
 var neo4j = require('neo4j');
+var errors = require('./errors');
 
 var db = new neo4j.GraphDatabase({
     // Support specifying database info via environment variables,
@@ -19,6 +20,18 @@ var User = module.exports = function User(_node) {
     this._node = _node;
 }
 
+// Public constants:
+
+User.VALIDATION_INFO = {
+    'username': {
+        required: true,
+        minLength: 2,
+        maxLength: 16,
+        pattern: /^[A-Za-z0-9_]+$/,
+        message: '2-16 characters; letters, numbers, and underscores only.'
+    },
+};
+
 // Public instance properties:
 
 // The user's username, e.g. 'aseemk'.
@@ -28,15 +41,59 @@ Object.defineProperty(User.prototype, 'username', {
 
 // Private helpers:
 
-// Takes the given caller-provided properties (which corresponding to our public
-// instance properties), selects only whitelisted ones for editing, validates
-// them, and translates them to the corresponding internal db properties.
-function translate(props) {
-    // Today, the only property we have is `username`.
-    // TODO: Validate it. E.g. length, acceptable chars, etc.
-    return {
-        username: props.username,
-    };
+// Takes the given caller-provided properties, selects only known ones,
+// validates them, and returns the known subset.
+// By default, only validates properties that are present.
+// (This allows `User.prototype.patch` to not require any.)
+// You can pass `true` for `required` to validate that all required properties
+// are present too. (Useful for `User.create`.)
+function validate(props, required) {
+    var safeProps = {};
+
+    for (var prop in User.VALIDATION_INFO) {
+        var val = props[prop];
+        validateProp(prop, val, required);
+        safeProps[prop] = val;
+    }
+
+    return safeProps;
+}
+
+// Validates the given property based on the validation info above.
+// By default, ignores null/undefined/empty values, but you can pass `true` for
+// the `required` param to enforce that any required properties are present.
+function validateProp(prop, val, required) {
+    var info = User.VALIDATION_INFO[prop];
+    var message = info.message;
+
+    if (!val) {
+        if (info.required && required) {
+            throw new errors.ValidationError(
+                'Missing ' + prop + ' (required).');
+        } else {
+            return;
+        }
+    }
+
+    if (info.minLength && val.length < info.minLength) {
+        throw new errors.ValidationError(
+            'Invalid ' + prop + ' (too short). Requirements: ' + message);
+    }
+
+    if (info.maxLength && val.length > info.maxLength) {
+        throw new errors.ValidationError(
+            'Invalid ' + prop + ' (too long). Requirements: ' + message);
+    }
+
+    if (info.pattern && !info.pattern.test(val)) {
+        throw new errors.ValidationError(
+            'Invalid ' + prop + ' (format). Requirements: ' + message);
+    }
+}
+
+function isConstraintViolation(err) {
+    return err instanceof neo4j.ClientError &&
+        err.neo4j.code === 'Neo.ClientError.Schema.ConstraintViolation';
 }
 
 // Public instance methods:
@@ -44,7 +101,7 @@ function translate(props) {
 // Atomically updates this user, both locally and remotely in the db, with the
 // given property updates.
 User.prototype.patch = function (props, callback) {
-    var safeProps = translate(props);
+    var safeProps = validate(props);
 
     var query = [
         'MATCH (user:User {username: {username}})',
@@ -63,6 +120,15 @@ User.prototype.patch = function (props, callback) {
         query: query,
         params: params,
     }, function (err, results) {
+        if (isConstraintViolation(err)) {
+            // TODO: This assumes username is the only relevant constraint.
+            // We could parse the constraint property out of the error message,
+            // but it'd be nicer if Neo4j returned this data semantically.
+            // Alternately, we could tweak our query to explicitly check first
+            // whether the username is taken or not.
+            err = new errors.ValidationError(
+                'The username ‘' + props.username + '’ is taken.');
+        }
         if (err) return callback(err);
 
         if (!results.length) {
@@ -234,13 +300,22 @@ User.create = function (props, callback) {
     ].join('\n');
 
     var params = {
-        props: translate(props)
+        props: validate(props)
     };
 
     db.cypher({
         query: query,
         params: params,
     }, function (err, results) {
+        if (isConstraintViolation(err)) {
+            // TODO: This assumes username is the only relevant constraint.
+            // We could parse the constraint property out of the error message,
+            // but it'd be nicer if Neo4j returned this data semantically.
+            // Alternately, we could tweak our query to explicitly check first
+            // whether the username is taken or not.
+            err = new errors.ValidationError(
+                'The username ‘' + props.username + '’ is taken.');
+        }
         if (err) return callback(err);
         var user = new User(results[0]['user']);
         callback(null, user);

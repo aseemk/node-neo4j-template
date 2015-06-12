@@ -9,6 +9,7 @@
 //
 // - List initial users.
 // - Create a user A.
+// - Attempt to create another user with the same username; should fail.
 // - Fetch user A. Should be the same.
 // - List users again; should be initial list plus user A.
 // - Update user A, e.g. its username.
@@ -18,6 +19,7 @@
 // - List users again; should be back to initial list.
 //
 // - Create two users in parallel, B and C.
+// - Attempt to change one user's username to the other's; should fail.
 // - Fetch both user's "following and others"; both should show no following.
 // - Have user B follow user C.
 // - Have user B follow user C again; should be idempotent.
@@ -42,6 +44,8 @@
 
 
 var expect = require('chai').expect;
+
+var errors = require('../../models/errors');
 var User = require('../../models/user');
 
 
@@ -133,6 +137,29 @@ function expectUserToFollow(user, expFollowing, expOthers, callback) {
     });
 }
 
+/**
+ * Asserts that the given error is a ValidationError with the given message.
+ * The given message can also be a regex, to perform a fuzzy match.
+ */
+function expectValidationError(err, msg) {
+    expect(err).to.be.an.instanceOf(Error);
+    expect(err).to.be.an.instanceOf(errors.ValidationError);
+
+    if (typeof msg === 'string') {
+        expect(err.message).to.equal(msg);
+    } else { // regex
+        expect(err.message).to.match(msg);
+    }
+}
+
+/**
+ * Asserts that the given error is a ValidationError for the given username
+ * being taken.
+ */
+function expectUsernameTakenValidationError(err, username) {
+    expectValidationError(err, 'The username ‘' + username + '’ is taken.');
+}
+
 
 // Tests:
 
@@ -167,6 +194,14 @@ describe('User models:', function () {
         });
     });
 
+    it('Attempt to create user A again', function (next) {
+        User.create({username: USER_A.username}, function (err, user) {
+            expect(user).to.not.exist;
+            expectUsernameTakenValidationError(err, USER_A.username);
+            return next();
+        });
+    });
+
     it('Fetch user A', function (next) {
         User.get(USER_A.username, function (err, user) {
             if (err) return next(err);
@@ -191,7 +226,7 @@ describe('User models:', function () {
 
     it('Update user A', function (next) {
         USER_A.patch({
-            username: USER_A.username + ' (edited)',
+            username: USER_A.username + '2',
         }, function (err) {
             return next(err);
         });
@@ -264,6 +299,17 @@ describe('User models:', function () {
 
         User.create({username: usernameB}, callback);
         User.create({username: usernameC}, callback);
+    });
+
+    it('Attempt to set user B’s username to user C’s', function (next) {
+        USER_B.patch({username: USER_C.username}, function (err) {
+            expectUsernameTakenValidationError(err, USER_C.username);
+
+            // User B's username should not have changed:
+            expect(USER_B.username).not.to.equal(USER_C.username);
+
+            return next();
+        });
     });
 
     it('Fetch user B’s “following and others”', function (next) {

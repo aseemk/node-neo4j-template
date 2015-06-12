@@ -33,8 +33,16 @@ block content
 
     form(action='/users/#{user.username}', method='POST')
         p Edit this user:
-        input(type='text', name='username', placeholder='#{user.username}', required)
+        span @
+        input(type='text', name='username', placeholder='#{user.username}', required,
+            minlength=User.VALIDATION_INFO.username.minLength,
+            maxlength=User.VALIDATION_INFO.username.maxLength,
+            pattern=User.VALIDATION_INFO.username.pattern.source,
+            title=User.VALIDATION_INFO.username.message,
+            value=username||'')
         input(type='submit', value='Update')
+        if error
+            span.error &nbsp;#{error}
 
     form(action='/users/#{user.username}', method='POST', onsubmit='return confirm("Are you sure?");')
         p And if you're feeling destructive…

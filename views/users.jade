@@ -15,5 +15,12 @@ block content
     form(action='', method='POST')
         p Create a new user:
         span @
-        input(type='text', name='username', placeholder='username', required)
+        input(type='text', name='username', placeholder='username', required,
+            minlength=User.VALIDATION_INFO.username.minLength,
+            maxlength=User.VALIDATION_INFO.username.maxLength,
+            pattern=User.VALIDATION_INFO.username.pattern.source,
+            title=User.VALIDATION_INFO.username.message,
+            value=username||'')
         input(type='submit', value='Create')
+        if error
+            span.error &nbsp;#{error}
