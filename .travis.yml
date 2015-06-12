@@ -14,6 +14,9 @@ before_install:
   - wget dist.neo4j.org/neo4j-community-$NEO4J_VERSION-unix.tar.gz
   - tar -xzf neo4j-community-$NEO4J_VERSION-unix.tar.gz
   - neo4j-community-$NEO4J_VERSION/bin/neo4j start
+  # HACK need to change the password initially; changing it and then reverting:
+  - curl -vX POST http://neo4j:neo4j@localhost:7474/user/neo4j/password -d"password=neo4j2"
+  - curl -vX POST http://neo4j:neo4j2@localhost:7474/user/neo4j/password -d"password=neo4j"
 
 # this *does* CI pull requests to master:
 branches:
