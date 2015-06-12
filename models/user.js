@@ -21,14 +21,9 @@ var User = module.exports = function User(_node) {
 
 // Public instance properties:
 
-// TODO: Using native Neo4j IDs is now discouraged; switch to an indexed+unique
-// property instead, e.g. `email` or `username` or etc.
-Object.defineProperty(User.prototype, 'id', {
-    get: function () { return this._node._id; }
-});
-
-Object.defineProperty(User.prototype, 'name', {
-    get: function () { return this._node.properties['name']; }
+// The user's username, e.g. 'aseemk'.
+Object.defineProperty(User.prototype, 'username', {
+    get: function () { return this._node.properties['username']; }
 });
 
 // Private helpers:
@@ -37,10 +32,10 @@ Object.defineProperty(User.prototype, 'name', {
 // instance properties), selects only whitelisted ones for editing, validates
 // them, and translates them to the corresponding internal db properties.
 function translate(props) {
-    // Today, the only property we have is `name`; it's the same; and it needs
-    // no validation. (Might want to validate things like length, Unicode, etc.)
+    // Today, the only property we have is `username`.
+    // TODO: Validate it. E.g. length, acceptable chars, etc.
     return {
-        name: props.name,
+        username: props.username,
     };
 }
 
@@ -52,14 +47,13 @@ User.prototype.patch = function (props, callback) {
     var safeProps = translate(props);
 
     var query = [
-        'MATCH (user:User)',
-        'WHERE ID(user) = {id}',
+        'MATCH (user:User {username: {username}})',
         'SET user += {props}',
         'RETURN user',
     ].join('\n');
 
     var params = {
-        id: this.id,
+        username: this.username,
         props: safeProps,
     };
 
@@ -72,7 +66,7 @@ User.prototype.patch = function (props, callback) {
         if (err) return callback(err);
 
         if (!results.length) {
-            err = new Error('User has been deleted! ID: ' + self.id);
+            err = new Error('User has been deleted! Username: ' + self.username);
             return callback(err);
         }
 
@@ -89,14 +83,13 @@ User.prototype.del = function (callback) {
     // (Note that this'll still fail if there are any relationships attached
     // of any other types, which is good because we don't expect any.)
     var query = [
-        'MATCH (user:User)',
-        'WHERE ID(user) = {userId}',
+        'MATCH (user:User {username: {username}})',
         'OPTIONAL MATCH (user) -[rel:follows]- (other)',
         'DELETE user, rel',
     ].join('\n')
 
     var params = {
-        userId: this.id
+        username: this.username,
     };
 
     db.cypher({
@@ -109,14 +102,14 @@ User.prototype.del = function (callback) {
 
 User.prototype.follow = function (other, callback) {
     var query = [
-        'MATCH (user:User) ,(other:User)',
-        'WHERE ID(user) = {userId} AND ID(other) = {otherId}',
+        'MATCH (user:User {username: {thisUsername}})',
+        'MATCH (other:User {username: {otherUsername}})',
         'MERGE (user) -[rel:follows]-> (other)',
     ].join('\n')
 
     var params = {
-        userId: this.id,
-        otherId: other.id,
+        thisUsername: this.username,
+        otherUsername: other.username,
     };
 
     db.cypher({
@@ -129,14 +122,15 @@ User.prototype.follow = function (other, callback) {
 
 User.prototype.unfollow = function (other, callback) {
     var query = [
-        'MATCH (user:User) -[rel:follows]-> (other:User)',
-        'WHERE ID(user) = {userId} AND ID(other) = {otherId}',
+        'MATCH (user:User {username: {thisUsername}})',
+        'MATCH (other:User {username: {otherUsername}})',
+        'MATCH (user) -[rel:follows]-> (other)',
         'DELETE rel',
     ].join('\n')
 
     var params = {
-        userId: this.id,
-        otherId: other.id,
+        thisUsername: this.username,
+        otherUsername: other.username,
     };
 
     db.cypher({
@@ -152,14 +146,14 @@ User.prototype.unfollow = function (other, callback) {
 User.prototype.getFollowingAndOthers = function (callback) {
     // Query all users and whether we follow each one or not:
     var query = [
-        'MATCH (user:User), (other:User)',
+        'MATCH (user:User {username: {thisUsername}})',
+        'MATCH (other:User)',
         'OPTIONAL MATCH (user) -[rel:follows]-> (other)',
-        'WHERE ID(user) = {userId}',
         'RETURN other, COUNT(rel)', // COUNT(rel) is a hack for 1 or 0
     ].join('\n')
 
     var params = {
-        userId: this.id,
+        thisUsername: this.username,
     };
 
     var user = this;
@@ -176,7 +170,7 @@ User.prototype.getFollowingAndOthers = function (callback) {
             var other = new User(results[i]['other']);
             var follows = results[i]['COUNT(rel)'];
 
-            if (user.id === other.id) {
+            if (user.username === other.username) {
                 continue;
             } else if (follows) {
                 following.push(other);
@@ -191,15 +185,14 @@ User.prototype.getFollowingAndOthers = function (callback) {
 
 // Static methods:
 
-User.get = function (id, callback) {
+User.get = function (username, callback) {
     var query = [
-        'MATCH (user:User)',
-        'WHERE ID(user) = {id}',
+        'MATCH (user:User {username: {username}})',
         'RETURN user',
     ].join('\n')
 
     var params = {
-        id: parseInt(id, 10),
+        username: username,
     };
 
     db.cypher({
@@ -208,7 +201,7 @@ User.get = function (id, callback) {
     }, function (err, results) {
         if (err) return callback(err);
         if (!results.length) {
-            err = new Error('No such user with ID: ' + id);
+            err = new Error('No such user with username: ' + username);
             return callback(err);
         }
         var user = new User(results[0]['user']);
@@ -253,3 +246,20 @@ User.create = function (props, callback) {
         callback(null, user);
     });
 };
+
+// Static initialization:
+
+// Register our unique username constraint.
+// TODO: This is done async'ly (fire and forget) here for simplicity,
+// but this would be better as a formal schema migration script or similar.
+db.createConstraint({
+    label: 'User',
+    property: 'username',
+}, function (err, constraint) {
+    if (err) throw err;     // Failing fast for now, by crash the application.
+    if (constraint) {
+        console.log('(Registered unique usernames constraint.)');
+    } else {
+        // Constraint already present; no need to log anything.
+    }
+})

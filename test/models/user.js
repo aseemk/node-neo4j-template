@@ -11,7 +11,7 @@
 // - Create a user A.
 // - Fetch user A. Should be the same.
 // - List users again; should be initial list plus user A.
-// - Update user A, e.g. its name.
+// - Update user A, e.g. its username.
 // - Fetch user A again. It should be updated.
 // - Delete user A.
 // - Try to fetch user A again; should fail.
@@ -63,7 +63,7 @@ function expectUser(obj, user) {
     expect(obj).to.be.an.instanceOf(User);
 
     if (user) {
-        ['id', 'name'].forEach(function (prop) {
+        ['username'].forEach(function (prop) {
             expect(obj[prop]).to.equal(user[prop]);
         });
     }
@@ -78,7 +78,7 @@ function expectUsersToContain(users, expUser) {
 
     expect(users).to.be.an('array');
     users.forEach(function (actUser) {
-        if (actUser.id === expUser.id) {
+        if (actUser.username === expUser.username) {
             expect(found, 'User already found').to.equal(false);
             expectUser(actUser, expUser);
             found = true;
@@ -93,7 +93,7 @@ function expectUsersToContain(users, expUser) {
 function expectUsersToNotContain(users, expUser) {
     expect(users).to.be.an('array');
     users.forEach(function (actUser) {
-        expect(actUser.id).to.not.equal(expUser.id);
+        expect(actUser.username).to.not.equal(expUser.username);
     });
 }
 
@@ -155,13 +155,12 @@ describe('User models:', function () {
     });
 
     it('Create user A', function (next) {
-        var name = 'Test User A';
-        User.create({name: name}, function (err, user) {
+        var username = 'testUserA';
+        User.create({username: username}, function (err, user) {
             if (err) return next(err);
 
             expectUser(user);
-            expect(user.id).to.be.a('number');
-            expect(user.name).to.be.equal(name);
+            expect(user.username).to.equal(username);
 
             USER_A = user;
             return next();
@@ -169,7 +168,7 @@ describe('User models:', function () {
     });
 
     it('Fetch user A', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             if (err) return next(err);
             expectUser(user, USER_A);
             return next();
@@ -192,14 +191,14 @@ describe('User models:', function () {
 
     it('Update user A', function (next) {
         USER_A.patch({
-            name: USER_A.name + ' (edited)',
+            username: USER_A.username + ' (edited)',
         }, function (err) {
             return next(err);
         });
     });
 
     it('Fetch user A again', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             if (err) return next(err);
             expectUser(user, USER_A);
             return next();
@@ -213,7 +212,7 @@ describe('User models:', function () {
     });
 
     it('Attempt to fetch user A again', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             expect(user).to.not.exist;  // i.e. null or undefined
             expect(err).to.be.an('object');
             expect(err).to.be.an.instanceOf(Error);
@@ -238,24 +237,24 @@ describe('User models:', function () {
     // Two-user following:
 
     it('Create users B and C', function (next) {
-        var nameB = 'Test User B';
-        var nameC = 'Test User C';
+        var usernameB = 'testUserB';
+        var usernameC = 'testUserC';
 
         function callback(err, user) {
             if (err) return next(err);
 
             expectUser(user);
 
-            switch (user.name) {
-                case nameB:
+            switch (user.username) {
+                case usernameB:
                     USER_B = user;
                     break;
-                case nameC:
+                case usernameC:
                     USER_C = user;
                     break;
                 default:
                     // Trigger an assertion error:
-                    expect(user.name).to.equal(nameB);
+                    expect(user.username).to.equal(usernameB);
             }
 
             if (USER_B && USER_C) {
@@ -263,8 +262,8 @@ describe('User models:', function () {
             }
         }
 
-        User.create({name: nameB}, callback);
-        User.create({name: nameC}, callback);
+        User.create({username: usernameB}, callback);
+        User.create({username: usernameC}, callback);
     });
 
     it('Fetch user B’s “following and others”', function (next) {
@@ -333,12 +332,12 @@ describe('User models:', function () {
     // Multi-user-following deletions:
 
     it('Create user D', function (next) {
-        var name = 'Test User D';
-        User.create({name: name}, function (err, user) {
+        var username = 'testUserD';
+        User.create({username: username}, function (err, user) {
             if (err) return next(err);
 
             expectUser(user);
-            expect(user.name).to.be.equal(name);
+            expect(user.username).to.be.equal(username);
 
             USER_D = user;
             return next();
