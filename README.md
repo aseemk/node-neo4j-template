@@ -23,7 +23,7 @@ cd node-neo4j-template
 npm install
 ```
 
-You'll also need a local Neo4j 2.0 instance.
+You'll also need a local Neo4j 2.x instance.
 Install it via **[neo4j.org/download](http://neo4j.org/download)**,
 or if you're on a Mac, `brew install neo4j`.
 
@@ -48,12 +48,12 @@ npm test
 
 ## Deploying
 
-This app is running on Heroku, using the free test version of the
+This app is running on Heroku, using the free version of the
 [GrapheneDB add-on](https://addons.heroku.com/graphenedb):
 
 <https://node-neo4j-template.herokuapp.com/>
 
-If you want to run your own instance similarly, it's just one click of a button away:
+You can run your own instance similarly for free:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
 
@@ -73,6 +73,7 @@ If you're deploying in another way, the code also checks for a `NEO4J_URL`
 environment variable to support pointing to any other Neo4j database.
 The value of this variable should be set to the database root URL, and it can
 contain HTTP Basic Auth info. E.g. `https://user:pass@1.2.3.4:5678`.
+You can alternately pass the auth portion (`user:pass`) as `NEO4J_AUTH`.
 
 One thing to note is that `npm start` is currently geared towards development:
 it runs [node-dev](https://github.com/fgnass/node-dev) instead of node.

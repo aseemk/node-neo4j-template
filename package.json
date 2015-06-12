@@ -7,7 +7,7 @@
   "dependencies": {
     "express": "^3.2.0",
     "jade": "^0.26.3",
-    "neo4j": "^1.1"
+    "neo4j": "2.0.0-RC2"
   },
   "devDependencies": {
     "chai": "^1.8",

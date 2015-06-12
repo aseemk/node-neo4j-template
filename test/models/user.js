@@ -9,15 +9,17 @@
 //
 // - List initial users.
 // - Create a user A.
+// - Attempt to create another user with the same username; should fail.
 // - Fetch user A. Should be the same.
 // - List users again; should be initial list plus user A.
-// - Update user A, e.g. its name.
+// - Update user A, e.g. its username.
 // - Fetch user A again. It should be updated.
 // - Delete user A.
 // - Try to fetch user A again; should fail.
 // - List users again; should be back to initial list.
 //
 // - Create two users in parallel, B and C.
+// - Attempt to change one user's username to the other's; should fail.
 // - Fetch both user's "following and others"; both should show no following.
 // - Have user B follow user C.
 // - Have user B follow user C again; should be idempotent.
@@ -42,6 +44,8 @@
 
 
 var expect = require('chai').expect;
+
+var errors = require('../../models/errors');
 var User = require('../../models/user');
 
 
@@ -63,7 +67,7 @@ function expectUser(obj, user) {
     expect(obj).to.be.an.instanceOf(User);
 
     if (user) {
-        ['id', 'name'].forEach(function (prop) {
+        ['username'].forEach(function (prop) {
             expect(obj[prop]).to.equal(user[prop]);
         });
     }
@@ -78,7 +82,7 @@ function expectUsersToContain(users, expUser) {
 
     expect(users).to.be.an('array');
     users.forEach(function (actUser) {
-        if (actUser.id === expUser.id) {
+        if (actUser.username === expUser.username) {
             expect(found, 'User already found').to.equal(false);
             expectUser(actUser, expUser);
             found = true;
@@ -93,7 +97,7 @@ function expectUsersToContain(users, expUser) {
 function expectUsersToNotContain(users, expUser) {
     expect(users).to.be.an('array');
     users.forEach(function (actUser) {
-        expect(actUser.id).to.not.equal(expUser.id);
+        expect(actUser.username).to.not.equal(expUser.username);
     });
 }
 
@@ -133,6 +137,29 @@ function expectUserToFollow(user, expFollowing, expOthers, callback) {
     });
 }
 
+/**
+ * Asserts that the given error is a ValidationError with the given message.
+ * The given message can also be a regex, to perform a fuzzy match.
+ */
+function expectValidationError(err, msg) {
+    expect(err).to.be.an.instanceOf(Error);
+    expect(err).to.be.an.instanceOf(errors.ValidationError);
+
+    if (typeof msg === 'string') {
+        expect(err.message).to.equal(msg);
+    } else { // regex
+        expect(err.message).to.match(msg);
+    }
+}
+
+/**
+ * Asserts that the given error is a ValidationError for the given username
+ * being taken.
+ */
+function expectUsernameTakenValidationError(err, username) {
+    expectValidationError(err, 'The username ‘' + username + '’ is taken.');
+}
+
 
 // Tests:
 
@@ -155,21 +182,28 @@ describe('User models:', function () {
     });
 
     it('Create user A', function (next) {
-        var name = 'Test User A';
-        User.create({name: name}, function (err, user) {
+        var username = 'testUserA';
+        User.create({username: username}, function (err, user) {
             if (err) return next(err);
 
             expectUser(user);
-            expect(user.id).to.be.a('number');
-            expect(user.name).to.be.equal(name);
+            expect(user.username).to.equal(username);
 
             USER_A = user;
             return next();
         });
     });
 
+    it('Attempt to create user A again', function (next) {
+        User.create({username: USER_A.username}, function (err, user) {
+            expect(user).to.not.exist;
+            expectUsernameTakenValidationError(err, USER_A.username);
+            return next();
+        });
+    });
+
     it('Fetch user A', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             if (err) return next(err);
             expectUser(user, USER_A);
             return next();
@@ -180,7 +214,7 @@ describe('User models:', function () {
         User.getAll(function (err, users) {
             if (err) return next(err);
 
-            // the order isn't part of the contract, so we just test that the
+            // The order isn't part of the contract, so we just test that the
             // new array is one longer than the initial, and contains user A.
             expect(users).to.be.an('array');
             expect(users).to.have.length(INITIAL_USERS.length + 1);
@@ -191,14 +225,15 @@ describe('User models:', function () {
     });
 
     it('Update user A', function (next) {
-        USER_A.name += ' (edited)';
-        USER_A.save(function (err) {
+        USER_A.patch({
+            username: USER_A.username + '2',
+        }, function (err) {
             return next(err);
         });
     });
 
     it('Fetch user A again', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             if (err) return next(err);
             expectUser(user, USER_A);
             return next();
@@ -212,7 +247,7 @@ describe('User models:', function () {
     });
 
     it('Attempt to fetch user A again', function (next) {
-        User.get(USER_A.id, function (err, user) {
+        User.get(USER_A.username, function (err, user) {
             expect(user).to.not.exist;  // i.e. null or undefined
             expect(err).to.be.an('object');
             expect(err).to.be.an.instanceOf(Error);
@@ -224,7 +259,7 @@ describe('User models:', function () {
         User.getAll(function (err, users) {
             if (err) return next(err);
 
-            // like before, we just test that this array is now back to the
+            // Like before, we just test that this array is now back to the
             // initial length, and *doesn't* contain user A.
             expect(users).to.be.an('array');
             expect(users).to.have.length(INITIAL_USERS.length);
@@ -237,24 +272,24 @@ describe('User models:', function () {
     // Two-user following:
 
     it('Create users B and C', function (next) {
-        var nameB = 'Test User B';
-        var nameC = 'Test User C';
+        var usernameB = 'testUserB';
+        var usernameC = 'testUserC';
 
         function callback(err, user) {
             if (err) return next(err);
 
             expectUser(user);
 
-            switch (user.name) {
-                case nameB:
+            switch (user.username) {
+                case usernameB:
                     USER_B = user;
                     break;
-                case nameC:
+                case usernameC:
                     USER_C = user;
                     break;
                 default:
-                    // trigger an assertion error:
-                    expect(user.name).to.equal(nameB);
+                    // Trigger an assertion error:
+                    expect(user.username).to.equal(usernameB);
             }
 
             if (USER_B && USER_C) {
@@ -262,15 +297,26 @@ describe('User models:', function () {
             }
         }
 
-        User.create({name: nameB}, callback);
-        User.create({name: nameC}, callback);
+        User.create({username: usernameB}, callback);
+        User.create({username: usernameC}, callback);
+    });
+
+    it('Attempt to set user B’s username to user C’s', function (next) {
+        USER_B.patch({username: USER_C.username}, function (err) {
+            expectUsernameTakenValidationError(err, USER_C.username);
+
+            // User B's username should not have changed:
+            expect(USER_B.username).not.to.equal(USER_C.username);
+
+            return next();
+        });
     });
 
     it('Fetch user B’s “following and others”', function (next) {
         expectUserToFollow(USER_B, [], [USER_C], function (err, following, others) {
             if (err) return next(err);
 
-            // our helper tests most things; we just test the length of others:
+            // Our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
 
             return next();
@@ -281,7 +327,7 @@ describe('User models:', function () {
         expectUserToFollow(USER_C, [], [USER_B], function (err, following, others) {
             if (err) return next(err);
 
-            // our helper tests most things; we just test the length of others:
+            // Our helper tests most things; we just test the length of others:
             expect(others).to.have.length(INITIAL_USERS.length + 1);
 
             return next();
@@ -314,7 +360,7 @@ describe('User models:', function () {
         });
     });
 
-    // NOTE: skipping this actually causes the next two tests to fail!
+    // FIXME: Skipping this actually causes the next two tests to fail!
     it('Have user B unfollow user C again', function (next) {
         USER_B.unfollow(USER_C, function (err) {
             return next(err);
@@ -332,12 +378,12 @@ describe('User models:', function () {
     // Multi-user-following deletions:
 
     it('Create user D', function (next) {
-        var name = 'Test User D';
-        User.create({name: name}, function (err, user) {
+        var username = 'testUserD';
+        User.create({username: username}, function (err, user) {
             if (err) return next(err);
 
             expectUser(user);
-            expect(user.name).to.be.equal(name);
+            expect(user.username).to.be.equal(username);
 
             USER_D = user;
             return next();
