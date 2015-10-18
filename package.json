@@ -5,9 +5,14 @@
   "author": "Aseem Kishore <aseem.kishore@gmail.com>",
   "private": true,
   "dependencies": {
-    "express": "^3.2.0",
+    "body-parser": "^1.14.1",
+    "errorhandler": "^1.4.2",
+    "express": "^4.13.3",
     "jade": "^0.26.3",
-    "neo4j": "2.0.0-RC2"
+    "method-override": "^2.3.5",
+    "morgan": "^1.6.1",
+    "neo4j": "2.0.0-RC2",
+    "serve-favicon": "^2.3.0"
   },
   "devDependencies": {
     "chai": "^1.8",
